@@ -5,10 +5,21 @@ output: html_notebook
 library
 ```{r}
 library(tidyverse)
+library(janitor)
 ```
 
 loading data
 ```{r}
+
+dc_crime_2023 <-  read.csv("data/Crime_Incidents_in_2023.csv") 
+
+```
+
+cleaning data
+```{r}
+
+dc_crime_2023 <- dc_crime_2023 %>% 
+  clean_names()
 
 ```
 

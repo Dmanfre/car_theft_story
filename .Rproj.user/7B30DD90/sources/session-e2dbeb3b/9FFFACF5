@@ -1,0 +1,27 @@
+{
+    "id": "9FFFACF5",
+    "path": "~/Documents/GitHub/car_theft_story/car_theft_project.Rmd",
+    "project_path": "car_theft_project.Rmd",
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1697808007830.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "chunk_output_type": "inline",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "20,13",
+        "scrollLine": "16"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1697823756,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1697823756098,
+    "read_only": false,
+    "read_only_alternatives": []
+}
