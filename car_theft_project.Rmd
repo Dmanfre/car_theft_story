@@ -25,6 +25,7 @@ cleaning data
 ```{r}
 pg_county_crime <- pg_county_crime %>% 
   clean_names()
+
 ```
 making the dates appropreate
 ```{r}
@@ -32,7 +33,8 @@ making the dates appropreate
 #extracting the year column and making the date the correct format
 pg_county_crime <- pg_county_crime %>%
   mutate(date = as.Date(date, format = "%m/%d/%Y"),
-          year = year(date))
+          year = year(date),
+         month = month(date))
 
 # Renaming the crime column to be easier to work with
 pg_county_crime <-  pg_county_crime %>% 
@@ -45,19 +47,24 @@ Showing distinct crimes: 22 types of crime here.
 pg_county_crime %>% 
   distinct(crime_type)
 ```
+Ditching records before 2020. We are doing this because we felt records 2020 to 2023 provided a good average.
+```{r}
+
+pg_county_crime <- pg_county_crime %>% 
+  filter(year >= 2020)
+
+```
 
 
 ----- Exploratory data section -------
+
 What I want to accomplish here?
-- I want to see monthly data that goes back a few years for stolen, auto. 
-
-
-
+- I want to see monthly data that goes back a few years for stolen, auto. DONE
 
 filtering for AUTO, STOLEN
 ```{r}
 stolen_auto <- pg_county_crime %>% 
-  filter(crime_type == "AUTO, STOLEN")
+  filter(crime_type == "AUTO, STOLEN" | crime_type == "AUTO, STOLEN & RECOVERED" )
 ```
 Time elements
 ```{r}
@@ -69,8 +76,7 @@ yearly_data <- stolen_auto %>%
 # showing a % growth
 (3338 - 2331)/(2331)*100
 ```
-Confirms a steady increase from 2021 on, after a slight decline from 2017-2020.
-
+Confirms a steady increase from 2020 to 2023. 
 Showing on a graph to visualize the increase.
 ```{r}
 ggplot() + 
@@ -79,75 +85,38 @@ ggplot() +
     aes(x=year, weight=`count`))
 ```
 monthly totals
-```{r}
-month_total_2023 <- stolen_auto %>% 
-  filter(year == "2023") %>% 
-  mutate(month = month(date)) %>% 
-  group_by(month, year) %>%
-  summarize(count = n())
-
-#Data only goes to July 5 which is why July is so low.
-```
 
 ```{r}
-month_total_2022 <- stolen_auto %>%
-  filter(year == "2022") %>%
-  mutate(month = month(date)) %>%
-  group_by(month, year) %>%
-  summarize(count = n())
+# What I did here first was make individual month totals by year. I thought there was a condenced way to do this so I used Chat GPT to write this look to iterate over each year from 2017 to 2023. 
 
-month_total_2021 <- stolen_auto %>%
-  filter(year == "2021") %>%
-  mutate(month = month(date)) %>%
-  group_by(month, year) %>%
-  summarize(count = n())
+# My next attempt was at making a loop before Derek suggested making a month/year column
 
-month_total_2020 <- stolen_auto %>%
-  filter(year == "2020") %>%
-  mutate(month = month(date)) %>%
-  group_by(month, year) %>%
-  summarize(count = n())
-
-month_total_2019 <- stolen_auto %>%
-  filter(year == "2019") %>%
-  mutate(month = month(date)) %>%
-  group_by(month, year) %>%
-  summarize(count = n())
-
-month_total_2018 <- stolen_auto %>%
-  filter(year == "2018") %>%
-  mutate(month = month(date)) %>%
-  group_by(month, year) %>%
-  summarize(count = n())
-
-month_total_2017 <- stolen_auto %>%
-  filter(year == "2017") %>%
-  mutate(month = month(date)) %>%
-  group_by(month, year) %>%
-  summarize(count = n())
-
-# Bind the rows
-month_totals <- bind_rows(
-  month_total_2023,
-  month_total_2022,
-  month_total_2021,
-  month_total_2020,
-  month_total_2019,
-  month_total_2018,
-  month_total_2017
-)
-
-#putting month names
-month_totals <- month_totals %>% 
-  mutate(month = month(month, label = TRUE))
-
-View(month_totals)
-#Note the data only goes back to Feb. 2017
-```
-
-Which month/year had the most?.... Feb. 2023 had the most with 624 thefts. 
-```{r}
-month_totals %>% 
+month_total <- stolen_auto %>% 
+  group_by(month, year) %>% 
+  summarize(count = n()) %>% 
+  mutate(month = month(month, label = TRUE)) %>% 
   arrange(desc(count))
 ```
+auto stolen and recovered notes: There were 782 cars stolen and recovered of the 11744.
+```{r}
+stolen_recovered_only <- pg_county_crime %>% 
+  filter(crime_type == "AUTO, STOLEN & RECOVERED")
+```
+yearly total for stolen and recovered
+```{r}
+
+stolen_recovered_years <- stolen_recovered_only %>%
+  group_by(year) %>%
+  summarize(count = n())
+
+```
+
+
+
+
+
+
+
+
+
 

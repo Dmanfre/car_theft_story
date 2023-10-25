@@ -1,2 +1,0 @@
-"0","stolen_auto <- pg_county_crime %>% "
-"0","  filter(crime_type == ""AUTO, STOLEN"")"
