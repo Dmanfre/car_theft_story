@@ -63,6 +63,9 @@ Time elements
 yearly_data <- stolen_auto %>%
   group_by(year) %>%
   summarize(count = n())
+
+# showing a % growth
+(3338 - 2331)/(2331)*100
 ```
 Confirms a steady increase from 2021 on, after a slight decline from 2017-2020.
 
@@ -73,17 +76,70 @@ ggplot() +
     data=yearly_data, 
     aes(x=year, weight=`count`))
 ```
-
-
-
+monthly totals
 ```{r}
-#monthly totals
 month_total_2023 <- stolen_auto %>% 
   filter(year == "2023") %>% 
   mutate(month = month(date)) %>% 
-  group_by(month) %>%
+  group_by(month, year) %>%
   summarize(count = n())
 
 #Data only goes to July 5 which is why July is so low.
+```
+
+```{r}
+month_total_2022 <- stolen_auto %>%
+  filter(year == "2022") %>%
+  mutate(month = month(date)) %>%
+  group_by(month, year) %>%
+  summarize(count = n())
+
+month_total_2021 <- stolen_auto %>%
+  filter(year == "2021") %>%
+  mutate(month = month(date)) %>%
+  group_by(month, year) %>%
+  summarize(count = n())
+
+month_total_2020 <- stolen_auto %>%
+  filter(year == "2020") %>%
+  mutate(month = month(date)) %>%
+  group_by(month, year) %>%
+  summarize(count = n())
+
+month_total_2019 <- stolen_auto %>%
+  filter(year == "2019") %>%
+  mutate(month = month(date)) %>%
+  group_by(month, year) %>%
+  summarize(count = n())
+
+month_total_2018 <- stolen_auto %>%
+  filter(year == "2018") %>%
+  mutate(month = month(date)) %>%
+  group_by(month, year) %>%
+  summarize(count = n())
+
+month_total_2017 <- stolen_auto %>%
+  filter(year == "2017") %>%
+  mutate(month = month(date)) %>%
+  group_by(month, year) %>%
+  summarize(count = n())
+
+# Bind the rows
+month_totals <- bind_rows(
+  month_total_2022,
+  month_total_2021,
+  month_total_2020,
+  month_total_2019,
+  month_total_2018,
+  month_total_2017
+)
+
+#putting month names
+month_totals <- month_totals %>% 
+  mutate(month = month(month, label = TRUE))
+
+
+View(month_totals)
+#Note the data only goes back to Feb. 2017
 ```
 
