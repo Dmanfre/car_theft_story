@@ -52,6 +52,8 @@ What I want to accomplish here?
 - I want to see monthly data that goes back a few years for stolen, auto. 
 
 
+
+
 filtering for AUTO, STOLEN
 ```{r}
 stolen_auto <- pg_county_crime %>% 
@@ -126,6 +128,7 @@ month_total_2017 <- stolen_auto %>%
 
 # Bind the rows
 month_totals <- bind_rows(
+  month_total_2023,
   month_total_2022,
   month_total_2021,
   month_total_2020,
@@ -138,8 +141,13 @@ month_totals <- bind_rows(
 month_totals <- month_totals %>% 
   mutate(month = month(month, label = TRUE))
 
-
 View(month_totals)
 #Note the data only goes back to Feb. 2017
+```
+
+Which month/year had the most?.... Feb. 2023 had the most with 624 thefts. 
+```{r}
+month_totals %>% 
+  arrange(desc(count))
 ```
 
