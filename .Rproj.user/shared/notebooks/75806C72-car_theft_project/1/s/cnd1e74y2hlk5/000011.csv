@@ -1,5 +1,0 @@
-"0","crime <- crime %>% 
-  clean_names()
-"
-"2","Error in crime %>% clean_names() : could not find function ""%>%""
-"

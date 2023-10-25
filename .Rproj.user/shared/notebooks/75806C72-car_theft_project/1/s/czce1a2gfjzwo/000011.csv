@@ -1,0 +1,4 @@
+"0","# yearly data"
+"0","yearly_data <- stolen_auto %>%"
+"0","  group_by(year) %>%"
+"0","  summarize(count = n())"

@@ -1,25 +1,89 @@
 ---
+name: Dylan Manfre and Natalie Davis
 title: "R Notebook"
 output: html_notebook
 ---
+
+Notes
+- Link to the data I downloaded from PG Open Data https://data.princegeorgescountymd.gov/Public-Safety/Crime-Incidents-February-2017-to-5th-July-2023/wb4e-w4nf
+
 library
 ```{r}
 library(tidyverse)
 library(janitor)
+library(lubridate)
 ```
 
 loading data
 ```{r}
-
-dc_crime_2023 <-  read.csv("data/Crime_Incidents_in_2023.csv") 
-
+pg_county_crime <-  read.csv("data/pg_county_crime.csv")
 ```
+
+______
 
 cleaning data
 ```{r}
-
-dc_crime_2023 <- dc_crime_2023 %>% 
+pg_county_crime <- pg_county_crime %>% 
   clean_names()
+```
+making the dates appropreate
+```{r}
 
+#extracting the year column and making the date the correct format
+pg_county_crime <- pg_county_crime %>%
+  mutate(date = as.Date(date, format = "%m/%d/%Y"),
+          year = year(date))
+
+# Renaming the crime column to be easier to work with
+pg_county_crime <-  pg_county_crime %>% 
+  rename(crime_type = clearance_code_inc_type)
+
+```
+
+Showing distinct crimes: 22 types of crime here.
+```{r}
+pg_county_crime %>% 
+  distinct(crime_type)
+```
+
+
+----- Exploratory data section -------
+What I want to accomplish here?
+- I want to see monthly data that goes back a few years for stolen, auto. 
+
+
+filtering for AUTO, STOLEN
+```{r}
+stolen_auto <- pg_county_crime %>% 
+  filter(crime_type == "AUTO, STOLEN")
+```
+Time elements
+```{r}
+# yearly data
+yearly_data <- stolen_auto %>%
+  group_by(year) %>%
+  summarize(count = n())
+```
+Confirms a steady increase from 2021 on, after a slight decline from 2017-2020.
+
+Showing on a graph to visualize the increase.
+```{r}
+ggplot() + 
+  geom_bar(
+    data=yearly_data, 
+    aes(x=year, weight=`count`))
+```
+
+
+
+```{r}
+#monthly totals
+month_total_2023 <- stolen_auto %>% 
+  filter(year == "2023") %>% 
+  mutate(month = month(date)) %>% 
+  group_by(month) %>%
+  summarize(count = n())
+
+#Data only goes to July 5 which is why July is so low.
 ```
 

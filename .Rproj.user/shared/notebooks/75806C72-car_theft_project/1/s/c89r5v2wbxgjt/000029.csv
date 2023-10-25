@@ -1,0 +1,4 @@
+"0","ggplot() + "
+"0","  geom_bar("
+"0","    data=yearly_data, "
+"0","    aes(x=year, weight=`count`))"
