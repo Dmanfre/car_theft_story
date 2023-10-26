@@ -1,0 +1,5 @@
+"0","reverse_geocoding_stolen_auto <- stolen_auto %>%"
+"0","  reverse_geocode(lat = latitude, long = longitude, method = 'osm',"
+"0","                  address = street_address, full_results = TRUE)"
+"2","Passing 7,088 coordinates to the Nominatim single coordinate geocoder
+"

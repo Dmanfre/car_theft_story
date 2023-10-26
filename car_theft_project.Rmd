@@ -12,6 +12,10 @@ library
 library(tidyverse)
 library(janitor)
 library(lubridate)
+#install.packages('tidygeocoder')
+library(tidygeocoder)
+install.packages("curl")
+library(curl)
 ```
 
 loading data
@@ -71,10 +75,9 @@ Time elements
 # yearly data
 yearly_data <- stolen_auto %>%
   group_by(year) %>%
-  summarize(count = n())
+  summarize(count = n()) %>% 
+  mutate(perc = (count / sum(count)) * 100)
 
-# showing a % growth
-(3338 - 2331)/(2331)*100
 ```
 Confirms a steady increase from 2020 to 2023. 
 Showing on a graph to visualize the increase.
@@ -97,10 +100,16 @@ month_total <- stolen_auto %>%
   mutate(month = month(month, label = TRUE)) %>% 
   arrange(desc(count))
 ```
-auto stolen and recovered notes: There were 782 cars stolen and recovered of the 11744.
+auto stolen and recovered notes: There were 782 cars stolen and recovered of the 11,744 which is roughly 7%
 ```{r}
 stolen_recovered_only <- pg_county_crime %>% 
   filter(crime_type == "AUTO, STOLEN & RECOVERED")
+
+#What percentage were stolen
+perc_stolen <- stolen_auto %>% 
+  group_by(crime_type) %>% 
+  summarize(count = n()) %>% 
+  mutate(perc = (count / sum(count)) * 100)
 ```
 yearly total for stolen and recovered
 ```{r}
@@ -110,7 +119,21 @@ stolen_recovered_years <- stolen_recovered_only %>%
   summarize(count = n())
 
 ```
+```{r}
+test <-  stolen_auto %>% 
+  filter(incident_case_id == "PP21062600000290")
+```
 
+
+Reverse geocoding section
+
+This was a test on a smaller data set and it worked. 
+```{r}
+reverse_geocoding_stolen_auto <- stolen_auto %>%
+  reverse_geocode(lat = latitude, long = longitude, method = 'osm',
+                  address = street_address, full_results = TRUE)
+
+```
 
 
 
