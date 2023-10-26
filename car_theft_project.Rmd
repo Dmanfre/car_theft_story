@@ -21,6 +21,9 @@ library(curl)
 loading data
 ```{r}
 pg_county_crime <-  read.csv("data/pg_county_crime.csv")
+moco_data <-  read.csv("data/moco_data.csv")
+
+
 ```
 
 ______
@@ -138,8 +141,98 @@ reverse_geocoding_stolen_auto <- stolen_auto %>%
 
 
 
+_______
 
+MoCo Data
 
+```{r}
+# cleaning
 
+moco_data <- moco_data %>%
+  separate(Start_Date_Time, c('start_date', 'start_time'), sep=' ', extra='merge') %>%
+  mutate(start_date = as.Date(start_date, format = "%m/%d/%Y"),
+          year = year(start_date),
+         month = month(start_date)) %>% 
+  filter(year >= 2020) %>% 
+  select(-Incident.ID, -Offence.Code, -CR.Number, -Dispatch.Date...Time, -End_Date_Time, -Crime.Name1, -Crime.Name3,) %>% 
+  rename(crime_name = Crime.Name2) %>% 
+  clean_names()
 
+moco_data %>% 
+  group_by(city) %>% 
+  summarize(count = n())
 
+moco_data <- moco_data %>% 
+  mutate(city = case_when(
+    city == "SILVE SPRING" ~ "SILVER SPRING",
+    city == "BEHTESDA" ~ "BETHESDA",
+    city == "SILVERS SPRING" ~ "SILVER SPRING",
+    city == "GAIHTERSBURG" ~ "GAITHERSBUG",
+    city == "BETHEDA" ~ "BETHESDA",
+    city == "BARNSVILLE" ~ "BARNESVILLE",
+    city == "BEALSVILLE" ~ "BEALLSVILLE",
+    city == "CLAEKSBURG" ~ "CLARKSBURG",
+    city == "GAIHTERSBURG" ~ "GAITHERSBURG",
+    city == "GAITHERBURG" ~ "GAITHERSBURG",
+    city == "GAITHERSBUG" ~ "GAITHERSBURG",
+    city == "GAUTHERSBURG" ~ "GAITHERSBURG",
+    city == "GAITHERSBUG" ~ "GAITHERSBURG",
+    city == "GRMANTOWN" ~ "GERMANTOWN",
+    city == "KENSTINGTON" ~ "KENSINGTON",
+    city == "MT AIRY" ~ "MOUNT AIRY",
+    city == "TACOMA PARK" ~ "TAKOMA PARK",
+    city == "WEHATON" ~ "WHEATON",
+    TRUE ~ city
+  ))
+
+moco_data %>% 
+ distinct(crime_name)
+
+```
+
+------------ EXPLORATORY DATA -----------
+
+Iso 2023
+```{r}
+moco_2023 <- moco_data %>% 
+  filter(year == "2023", crime_name == "Motor Vehicle Theft")
+```
+
+All moco car thefts
+```{r}
+moco_car_thefts <- moco_data %>% 
+  filter(crime_name == "Motor Vehicle Theft")
+
+View(moco_car_thefts)
+```
+
+Quick visual of the yearly thefts
+```{r}
+moco_yearly <- moco_car_thefts %>% 
+  group_by(year) %>% 
+  summarize(count = n()) %>% 
+  mutate(perc = count/sum(count)*100)
+
+ggplot() + 
+  geom_bar(
+    data=moco_yearly, 
+    aes(x=year, weight=`count`))
+
+```
+The majority of the thefts happened in residential parking lots... roughly 29%.
+```{r}
+moco_theft_places <- moco_car_thefts %>% 
+  group_by(place) %>% 
+  summarize(count = n()) %>% 
+  mutate(perc = count/sum(count)*100) %>% 
+  arrange(desc(count))
+
+```
+Moco monthly totals 
+```{r}
+ moco_monthly <- moco_car_thefts %>% 
+  group_by(month, year) %>% 
+  summarize(count = n()) %>% 
+  mutate(month = month(month, label = TRUE)) %>% 
+  pivot_wider(names_from = year, values_from = count, values_fill = 0)
+```

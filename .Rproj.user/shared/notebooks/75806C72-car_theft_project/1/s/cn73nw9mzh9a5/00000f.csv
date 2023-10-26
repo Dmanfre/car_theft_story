@@ -1,8 +1,0 @@
-"0","stolen_auto %>% 
-  group_by(month, year) %>% 
-  summarize(count = n()) %>% 
-  mutate(month = month(month, label = TRUE)) %>% 
-  arrange(desc(count)) %>% 
-  mutate(perc = (count / sum(count)) * 100)
-"
-"2","`summarise()` has grouped output by 'month'. You can override using the `.groups` argument."
