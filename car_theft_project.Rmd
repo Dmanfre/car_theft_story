@@ -21,8 +21,7 @@ library(curl)
 loading data
 ```{r}
 pg_county_crime <-  read.csv("data/pg_county_crime.csv")
-moco_data <-  read.csv("data/moco_data.csv")
-
+moco_data <- read_csv("data/test_data.csv")
 
 ```
 
@@ -128,14 +127,18 @@ test <-  stolen_auto %>%
 ```
 
 
-Reverse geocoding section
+-----Reverse geocoding section -----
+
+I need to break up the stolen_auto data into three sections.
+Then I need to run the reverse_geocode.
+Then I need to bind them all together.
+
 
 This was a test on a smaller data set and it worked. 
 ```{r}
 reverse_geocoding_stolen_auto <- stolen_auto %>%
   reverse_geocode(lat = latitude, long = longitude, method = 'osm',
                   address = street_address, full_results = TRUE)
-
 ```
 
 
@@ -149,14 +152,14 @@ MoCo Data
 # cleaning
 
 moco_data <- moco_data %>%
-  separate(Start_Date_Time, c('start_date', 'start_time'), sep=' ', extra='merge') %>%
+   clean_names() %>% 
+  separate(start_date_time, c('start_date', 'start_time'), sep=' ', extra='merge') %>%
   mutate(start_date = as.Date(start_date, format = "%m/%d/%Y"),
           year = year(start_date),
          month = month(start_date)) %>% 
   filter(year >= 2020) %>% 
-  select(-Incident.ID, -Offence.Code, -CR.Number, -Dispatch.Date...Time, -End_Date_Time, -Crime.Name1, -Crime.Name3,) %>% 
-  rename(crime_name = Crime.Name2) %>% 
-  clean_names()
+filter(crime_name2 == "Motor Vehicle Theft") %>% 
+  rename(crime_name = crime_name2)
 
 moco_data %>% 
   group_by(city) %>% 
@@ -190,18 +193,25 @@ moco_data %>%
 
 ```
 
------------- EXPLORATORY DATA -----------
+------------ EXPLORATORY DATA FOR MOCO -----------
 
 Iso 2023
 ```{r}
 moco_2023 <- moco_data %>% 
   filter(year == "2023", crime_name == "Motor Vehicle Theft")
+
+#exporting 2023
+
+write_csv(moco_2023, "data/moco_2023.csv")
+
 ```
 
 All moco car thefts
 ```{r}
 moco_car_thefts <- moco_data %>% 
   filter(crime_name == "Motor Vehicle Theft")
+
+write_csv(moco_car_thefts, "data/moco_car_thefts.csv")
 
 View(moco_car_thefts)
 ```
@@ -217,6 +227,9 @@ ggplot() +
   geom_bar(
     data=moco_yearly, 
     aes(x=year, weight=`count`))
+
+write_csv(moco_yearly, "data/moco_yearly.csv")
+
 
 ```
 The majority of the thefts happened in residential parking lots... roughly 29%.
