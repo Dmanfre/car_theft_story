@@ -14,14 +14,17 @@ library(janitor)
 library(lubridate)
 #install.packages('tidygeocoder')
 library(tidygeocoder)
-install.packages("curl")
+#install.packages("curl")
 library(curl)
+library(ggplot2)
+library(ggrepel)
 ```
 
 loading data
 ```{r}
-pg_county_crime <-  read.csv("data/pg_county_crime.csv")
+pg_county_crime_old <-  read.csv("data/pg_county_crime.csv")
 moco_data <- read_csv("data/test_data.csv")
+pg_county_crime_new <-  read.csv("data/pg_county_crime_new.csv")
 
 ```
 
@@ -29,7 +32,10 @@ ______
 
 cleaning data
 ```{r}
-pg_county_crime <- pg_county_crime %>% 
+pg_county_crime_old <- pg_county_crime_old %>% 
+  clean_names()
+
+pg_county_crime_new <- pg_county_crime_new %>% 
   clean_names()
 
 ```
@@ -37,27 +43,47 @@ making the dates appropreate
 ```{r}
 
 #extracting the year column and making the date the correct format
-pg_county_crime <- pg_county_crime %>%
-  mutate(date = as.Date(date, format = "%m/%d/%Y"),
-          year = year(date),
+pg_county_crime_old <- pg_county_crime_old %>%
+ mutate(date = as.Date(date, "%m/%d/%Y"),
+        year = year(date),
+         month = month(date)) %>% 
+  filter(date < "2023-07-01")
+
+pg_county_crime_new <- pg_county_crime_new %>% 
+  mutate(date = as.Date(date, "%m/%d/%Y"),
+        year = year(date),
          month = month(date))
 
+
 # Renaming the crime column to be easier to work with
-pg_county_crime <-  pg_county_crime %>% 
+pg_county_crime_old <-  pg_county_crime_old %>% 
   rename(crime_type = clearance_code_inc_type)
+
+pg_county_crime_new <- pg_county_crime_new %>% 
+   rename(crime_type = clearance_code_inc_type)
+
 
 ```
 
 Showing distinct crimes: 22 types of crime here.
 ```{r}
-pg_county_crime %>% 
+pg_county_crime_old %>% 
+  distinct(crime_type)
+
+pg_county_crime_new %>% 
   distinct(crime_type)
 ```
 Ditching records before 2020. We are doing this because we felt records 2020 to 2023 provided a good average.
 ```{r}
 
-pg_county_crime <- pg_county_crime %>% 
-  filter(year >= 2020)
+pg_county_crime_old <- pg_county_crime_old %>% 
+  filter(year >= 2019)
+
+#pg county_crime_new from July 5 - Oct. 10
+
+#binding
+
+total_pg_county_data <- bind_rows(pg_county_crime_old, pg_county_crime_new )
 
 ```
 
@@ -69,13 +95,13 @@ What I want to accomplish here?
 
 filtering for AUTO, STOLEN
 ```{r}
-stolen_auto <- pg_county_crime %>% 
+pg_stolen_auto <- total_pg_county_data %>% 
   filter(crime_type == "AUTO, STOLEN" | crime_type == "AUTO, STOLEN & RECOVERED" )
 ```
 Time elements
 ```{r}
 # yearly data
-yearly_data <- stolen_auto %>%
+pg_yearly_data <- pg_stolen_auto %>%
   group_by(year) %>%
   summarize(count = n()) %>% 
   mutate(perc = (count / sum(count)) * 100)
@@ -86,9 +112,13 @@ Showing on a graph to visualize the increase.
 ```{r}
 ggplot() + 
   geom_bar(
-    data=yearly_data, 
-    aes(x=year, weight=`count`))
+    data=pg_yearly_data, 
+    aes(x=year, weight=`count`))+
+  labs(title = "Car thefts in PG county",
+       caption =  "Source: PG Open Data | Graph by Dylan Manfre")
+
 ```
+
 monthly totals
 
 ```{r}
@@ -96,38 +126,40 @@ monthly totals
 
 # My next attempt was at making a loop before Derek suggested making a month/year column
 
-month_total <- stolen_auto %>% 
+pg_month_total <- pg_stolen_auto %>% 
   group_by(month, year) %>% 
   summarize(count = n()) %>% 
   mutate(month = month(month, label = TRUE)) %>% 
-  arrange(desc(count))
+  pivot_wider(names_from = year, values_from = count)
+
 ```
 auto stolen and recovered notes: There were 782 cars stolen and recovered of the 11,744 which is roughly 7%
 ```{r}
-stolen_recovered_only <- pg_county_crime %>% 
+pg_stolen_recovered_only <- total_pg_county_data %>% 
   filter(crime_type == "AUTO, STOLEN & RECOVERED")
 
 #What percentage were stolen
-perc_stolen <- stolen_auto %>% 
+pg_perc_stolen <- pg_stolen_auto %>% 
   group_by(year, crime_type) %>% 
   summarize(count = n()) %>% 
-  #mutate(perc = (count / sum(count)) * 100) %>% 
+  mutate(perc = (count / sum(count)) * 100) %>% 
     pivot_wider(names_from = year, values_from = count)
+
+
 
 ```
 yearly total for stolen and recovered
 ```{r}
 
-stolen_recovered_years <- stolen_recovered_only %>%
+pg_stolen_recovered_years <- pg_stolen_recovered_only %>%
   group_by(year) %>%
-  summarize(count = n()) %>% 
+  summarize(count = n())
   
 
 ```
-```{r}
+
 test <-  stolen_auto %>% 
   filter(incident_case_id == "PP21062600000290")
-```
 
 
 -----Reverse geocoding section for PG County -----
@@ -136,7 +168,7 @@ I need to break up the stolen_auto data into three sections.
 Then I need to run the reverse_geocode.
 Then I need to bind them all together.
 
-```{r}
+
 #breaking up stolen auto
 #breaking it up into 4 subsets with 2,936 rows because 11,744/4 = 2,936
 #Code was copied from ChatGPT
@@ -154,15 +186,13 @@ subset6 <- stolen_auto[(5 * subset_size + 1):(6 * subset_size), ]
 subset7 <- stolen_auto[(6 * subset_size + 1):(7 * subset_size), ]
 subset8 <- stolen_auto[(7 * subset_size + 1):(8 * subset_size), ]
 
-```
+
 
 reverse geocoding
-```{r}
 
-subset2 <- subset2 %>%
+#subset2 <- subset2 %>%
   reverse_geocode(lat = latitude, long = longitude, method = 'osm',
                   address = street_address, full_results = TRUE)
-```
 
 
 
@@ -180,13 +210,15 @@ moco_data <- moco_data %>%
   mutate(start_date = as.Date(start_date, format = "%m/%d/%Y"),
           year = year(start_date),
          month = month(start_date)) %>% 
-  filter(year >= 2020) %>% 
+  filter(year >= 2019) %>% 
 filter(crime_name2 == "Motor Vehicle Theft") %>% 
   rename(crime_name = crime_name2)
 
 moco_data %>% 
+  filter(year == 2023) %>% 
   group_by(city) %>% 
-  summarize(count = n())
+  summarize(count = n()) %>% 
+  arrange(desc(count))
 
 moco_data <- moco_data %>% 
   mutate(city = case_when(
@@ -210,9 +242,6 @@ moco_data <- moco_data %>%
     city == "WEHATON" ~ "WHEATON",
     TRUE ~ city
   ))
-
-moco_data %>% 
- distinct(crime_name)
 
 ```
 
@@ -249,7 +278,9 @@ moco_yearly <- moco_car_thefts %>%
 ggplot() + 
   geom_bar(
     data=moco_yearly, 
-    aes(x=year, weight=`count`))
+    aes(x=year, weight=`count`))+
+  labs(title = "Montgomery County car thefts",
+       caption =  "Source: MoCo Open Data | Graph by Dylan Manfre")
 
 write_csv(moco_yearly, "data/moco_yearly.csv")
 
@@ -258,6 +289,15 @@ write_csv(moco_yearly, "data/moco_yearly.csv")
 The majority of the thefts happened in residential parking lots... roughly 29%.
 ```{r}
 moco_theft_places <- moco_car_thefts %>% 
+  group_by(place) %>% 
+  summarize(count = n()) %>% 
+  mutate(perc = count/sum(count)*100) %>% 
+  arrange(desc(count))
+
+#2023 only
+
+moco_car_thefts %>% 
+  filter(year == 2023) %>% 
   group_by(place) %>% 
   summarize(count = n()) %>% 
   mutate(perc = count/sum(count)*100) %>% 
