@@ -129,8 +129,8 @@ monthly totals
 pg_month_total <- pg_stolen_auto %>% 
   group_by(month, year) %>% 
   summarize(autos_stolen = n()) %>% 
-  mutate(month = month(month, label = TRUE))
-  #pivot_wider(names_from = year, values_from = count)
+  mutate(month = month(month, label = TRUE)) %>% 
+  pivot_wider(names_from = year, values_from = autos_stolen)
 
 write_csv(pg_month_total, "data/pg_monthly_total.csv")
 
@@ -177,8 +177,10 @@ write_csv(combined_pg_monthly, "data/combined_pg_monthly.csv")
 combined_pg_years <- inner_join(pg_stolen_recovered_years, pg_yearly_data, by=c("year")) %>% 
   select(-perc)
 
-```
+write_csv(combined_pg_years, "data/combined_pg_years.csv") #use this dataset for a stacked bar chart. 
 
+
+```
 
 
 test <-  stolen_auto %>% 
