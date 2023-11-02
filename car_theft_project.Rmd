@@ -47,7 +47,7 @@ pg_county_crime_old <- pg_county_crime_old %>%
  mutate(date = as.Date(date, "%m/%d/%Y"),
         year = year(date),
          month = month(date)) %>% 
-  filter(date < "2023-07-01")
+  filter(date <= "2023-07-01")
 
 pg_county_crime_new <- pg_county_crime_new %>% 
   mutate(date = as.Date(date, "%m/%d/%Y"),
@@ -103,8 +103,8 @@ Time elements
 # yearly data
 pg_yearly_data <- pg_stolen_auto %>%
   group_by(year) %>%
-  summarize(count = n()) %>% 
-  mutate(perc = (count / sum(count)) * 100)
+  summarize(stolen_auto = n()) %>% 
+  mutate(perc = (stolen_auto / sum(stolen_auto)) * 100)
 
 ```
 Confirms a steady increase from 2020 to 2023. 
@@ -113,7 +113,7 @@ Showing on a graph to visualize the increase.
 ggplot() + 
   geom_bar(
     data=pg_yearly_data, 
-    aes(x=year, weight=`count`))+
+    aes(x=year, weight=`stolen_auto`))+
   labs(title = "Car thefts in PG county",
        caption =  "Source: PG Open Data | Graph by Dylan Manfre")
 
@@ -128,9 +128,11 @@ monthly totals
 
 pg_month_total <- pg_stolen_auto %>% 
   group_by(month, year) %>% 
-  summarize(count = n()) %>% 
-  mutate(month = month(month, label = TRUE)) %>% 
-  pivot_wider(names_from = year, values_from = count)
+  summarize(autos_stolen = n()) %>% 
+  mutate(month = month(month, label = TRUE))
+  #pivot_wider(names_from = year, values_from = count)
+
+write_csv(pg_month_total, "data/pg_monthly_total.csv")
 
 ```
 auto stolen and recovered notes: There were 782 cars stolen and recovered of the 11,744 which is roughly 7%
@@ -142,7 +144,7 @@ pg_stolen_recovered_only <- total_pg_county_data %>%
 pg_perc_stolen <- pg_stolen_auto %>% 
   group_by(year, crime_type) %>% 
   summarize(count = n()) %>% 
-  mutate(perc = (count / sum(count)) * 100) %>% 
+  #mutate(perc = (count / sum(count)) * 100) %>% 
     pivot_wider(names_from = year, values_from = count)
 
 
@@ -153,10 +155,31 @@ yearly total for stolen and recovered
 
 pg_stolen_recovered_years <- pg_stolen_recovered_only %>%
   group_by(year) %>%
-  summarize(count = n())
-  
+  summarize(stolen_recovered = n()) %>%   arrange(desc(stolen_recovered))
+
+pg_stolen_recovered_months <- pg_stolen_recovered_only %>%
+  group_by(month, year) %>%
+  summarize(stolen_recovered = n()) %>% 
+   mutate(month = month(month, label = TRUE)) %>%
+  arrange(desc(stolen_recovered))
+
+#joining pg_stolen_recovered_months with pg_month_total
+
+combined_pg_monthly <- inner_join(pg_stolen_recovered_months, pg_month_total, by=c("month", "year"))
+
+write_csv(combined_pg_monthly, "data/combined_pg_monthly.csv")
 
 ```
+
+```{r}
+#join pg_stolen_recovered_years and #pg_yearly_data
+
+combined_pg_years <- inner_join(pg_stolen_recovered_years, pg_yearly_data, by=c("year")) %>% 
+  select(-perc)
+
+```
+
+
 
 test <-  stolen_auto %>% 
   filter(incident_case_id == "PP21062600000290")
@@ -193,8 +216,6 @@ reverse geocoding
 #subset2 <- subset2 %>%
   reverse_geocode(lat = latitude, long = longitude, method = 'osm',
                   address = street_address, full_results = TRUE)
-
-
 
 
 _______
