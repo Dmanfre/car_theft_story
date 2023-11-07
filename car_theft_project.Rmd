@@ -101,7 +101,7 @@ pg_stolen_auto <- total_pg_county_data %>%
 Time elements
 ```{r}
 # yearly data
-pg_yearly_data <- pg_stolen_auto %>%
+pg_yearly_data <- pg_stolen %>%
   group_by(year) %>%
   summarize(stolen_auto = n()) %>% 
   mutate(perc = (stolen_auto / sum(stolen_auto)) * 100)
@@ -126,7 +126,7 @@ monthly totals
 
 # My next attempt was at making a loop before Derek suggested making a month/year column
 
-pg_month_total <- pg_stolen_auto %>% 
+pg_stolen %>% 
   group_by(month, year) %>% 
   summarize(autos_stolen = n()) %>% 
   mutate(month = month(month, label = TRUE)) %>% 
@@ -144,9 +144,7 @@ pg_stolen_recovered_only <- total_pg_county_data %>%
 pg_perc_stolen <- pg_stolen_auto %>% 
   group_by(year, crime_type) %>% 
   summarize(count = n()) %>% 
-  #mutate(perc = (count / sum(count)) * 100) %>% 
-    pivot_wider(names_from = year, values_from = count)
-
+  mutate(perc = (count / sum(count)) * 100)
 
 
 ```
@@ -167,6 +165,9 @@ pg_stolen_recovered_months <- pg_stolen_recovered_only %>%
 
 combined_pg_monthly <- inner_join(pg_stolen_recovered_months, pg_month_total, by=c("month", "year"))
 
+combined_pg_monthly <- combined_pg_monthly %>% 
+  mutate(grand_total = stolen_recovered + autos_stolen)
+
 write_csv(combined_pg_monthly, "data/combined_pg_monthly.csv")
 
 ```
@@ -176,6 +177,9 @@ write_csv(combined_pg_monthly, "data/combined_pg_monthly.csv")
 
 combined_pg_years <- inner_join(pg_stolen_recovered_years, pg_yearly_data, by=c("year")) %>% 
   select(-perc)
+
+combined_pg_years <- combined_pg_years %>% 
+  mutate(grand_total = stolen_auto + stolen_recovered)
 
 write_csv(combined_pg_years, "data/combined_pg_years.csv") #use this dataset for a stacked bar chart. 
 
@@ -237,12 +241,6 @@ moco_data <- moco_data %>%
 filter(crime_name2 == "Motor Vehicle Theft") %>% 
   rename(crime_name = crime_name2)
 
-moco_data %>% 
-  filter(year == 2023) %>% 
-  group_by(city) %>% 
-  summarize(count = n()) %>% 
-  arrange(desc(count))
-
 moco_data <- moco_data %>% 
   mutate(city = case_when(
     city == "SILVE SPRING" ~ "SILVER SPRING",
@@ -265,6 +263,12 @@ moco_data <- moco_data %>%
     city == "WEHATON" ~ "WHEATON",
     TRUE ~ city
   ))
+
+moco_cities <- moco_data %>% 
+  filter(year == 2023) %>% 
+  group_by(city) %>% 
+  summarize(count = n()) %>% 
+  arrange(desc(count))
 
 ```
 
@@ -317,6 +321,9 @@ moco_theft_places <- moco_car_thefts %>%
   mutate(perc = count/sum(count)*100) %>% 
   arrange(desc(count))
 
+write_csv(moco_theft_places, "data/moco_theft_places.csv")
+
+
 #2023 only
 
 moco_car_thefts %>% 
@@ -329,11 +336,18 @@ moco_car_thefts %>%
 ```
 Moco monthly totals 
 ```{r}
- moco_monthly <- moco_car_thefts %>% 
-  group_by(month, year) %>% 
-  summarize(count = n()) %>% 
-  mutate(month = month(month, label = TRUE)) %>% 
-  pivot_wider(names_from = year, values_from = count, values_fill = 0)
+ moco_monthly <- moco_car_thefts %>%
+  filter(year == "2022" | year == "2023") %>%
+  group_by(month, year) %>%
+  summarize(count = n()) %>%
+  mutate(
+    month_year = paste0(format(as.Date(paste(year, month, "01"), "%Y %m %d"), "%b-%y")))
+
+
+write_csv(moco_monthly, "data/moco_monthly.csv")
+
+
+#pivot_wider(names_from = year, values_from = count, values_fill = 0)
 ```
 
 

@@ -1,0 +1,88 @@
+library
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+#install.packages('tidygeocoder')
+library(tidygeocoder)
+#install.packages("curl")
+library(curl)
+library(ggplot2)
+library(ggrepel)
+```
+
+loading data
+```{r}
+pg_county_crime_old <-  read.csv("data/pg_county_crime.csv")
+```
+
+cleaning
+```{r}
+pg_county_crime_old <- pg_county_crime_old %>% 
+  clean_names() %>% 
+ mutate(date = as.Date(date, "%m/%d/%Y"),
+        year = year(date),
+         month = month(date)) %>% 
+  rename(crime_type = clearance_code_inc_type)
+```
+
+Crime types
+```{r}
+#Showing distinct crimes: 22 types of crime here.
+pg_county_crime_old %>% 
+  distinct(crime_type)
+```
+
+Ditching records before 2019 and 2023 because we are using the Open Data portal records for 2019-2022 and using 2023 from the PG Police.
+
+Since we're not using 2023 records, we no longer need to include the dataset from July 2023-Present.
+
+```{r}
+pg_county_crime_old <- pg_county_crime_old %>% 
+  filter(year >= 2019, year <= 2022)
+```
+
+filtering for AUTO, STOLEN and "AUTO, STOLEN & RECOVERED"
+```{r}
+pg_stolen <- pg_county_crime_old %>% 
+  filter(crime_type == "AUTO, STOLEN" | crime_type == "AUTO, STOLEN & RECOVERED" )
+```
+
+Exploratory data section
+
+# Question: How many cars were stolen per year. Showing this in a quick visual
+
+Goal of below code block is to show year, stolen_auto count, stolen_recovered_count and a grand_total
+```{r}
+pg_yearly_data <- pg_stolen %>%
+  group_by(year) %>%
+  summarize(
+    stolen_autos = sum(crime_type == "AUTO, STOLEN")) %>% 
+  add_row(year = 2023, stolen_autos = 6229) %>% 
+  mutate(perc_change = (6229-3105)/3105)*100
+
+```
+
+quick visual
+```{r}
+ggplot() + 
+  geom_bar(
+    data=pg_yearly_data, 
+    aes(x=year, weight=`stolen_autos`))+
+  labs(title = "Car thefts in PG county 2019-2022",
+       caption =  "Source: PG Open Data | Graph by Dylan Manfre")
+```
+Confirms a steady increase from 2019 to 2022. Again, we only did up to 2022 because we are using 2023 numbers from the PG police.
+
+Monthly totals for PG county 2019-2022
+```{r}
+pg_monthly <- pg_stolen %>% 
+  group_by(month, year) %>% 
+  summarize(
+    stolen_recovered = sum(crime_type == "AUTO, STOLEN & RECOVERED"),
+    stolen_autos = sum(crime_type == "AUTO, STOLEN"),
+    month_total = stolen_recovered + stolen_autos) %>% 
+    mutate(month = month(month, label = TRUE))
+
+```
+
