@@ -14,6 +14,7 @@ library(ggrepel)
 loading data
 ```{r}
 pg_county_crime_old <-  read.csv("data/pg_county_crime.csv")
+updated_pg <- read_csv("data/updated_pg.csv")
 ```
 
 cleaning
@@ -23,29 +24,42 @@ pg_county_crime_old <- pg_county_crime_old %>%
  mutate(date = as.Date(date, "%m/%d/%Y"),
         year = year(date),
          month = month(date)) %>% 
+  rename(crime_type = clearance_code_inc_type) %>% 
+  filter(date <= "2023-07-01")
+
+updated_pg <- updated_pg %>% 
+   clean_names() %>% 
+ mutate(date = as.Date(date, "%m/%d/%Y"),
+        year = year(date),
+         month = month(date)) %>% 
   rename(crime_type = clearance_code_inc_type)
+
+
+total_pg_county_data <- bind_rows(pg_county_crime_old, updated_pg )
+
+
 ```
 
 Crime types
 ```{r}
 #Showing distinct crimes: 22 types of crime here.
-pg_county_crime_old %>% 
+total_pg_county_data %>% 
   distinct(crime_type)
 ```
 
 Ditching records before 2019 and 2023 because we are using the Open Data portal records for 2019-2022 and using 2023 from the PG Police.
 
-Since we're not using 2023 records, we no longer need to include the dataset from July 2023-Present.
+# UPDATE FROM NOV. 8. To check the month totals, I added 2023 back to the dataset. We are not making graphics out of these but we are using the numbers fro the story and relying on the police for the yearly 2023 number which was said in the email (6229).
 
 ```{r}
-pg_county_crime_old <- pg_county_crime_old %>% 
-  filter(year >= 2019, year <= 2022)
+total_pg_county_data <- total_pg_county_data %>% 
+  filter(year >= 2019)
 ```
 
-filtering for AUTO, STOLEN and "AUTO, STOLEN & RECOVERED"
+filtering for AUTO, STOLEN.
 ```{r}
-pg_stolen <- pg_county_crime_old %>% 
-  filter(crime_type == "AUTO, STOLEN" | crime_type == "AUTO, STOLEN & RECOVERED" )
+pg_stolen <- total_pg_county_data %>% 
+  filter(crime_type == "AUTO, STOLEN")
 ```
 
 Exploratory data section
@@ -54,12 +68,14 @@ Exploratory data section
 
 Goal of below code block is to show year, stolen_auto count, stolen_recovered_count and a grand_total
 ```{r}
-pg_yearly_data <- pg_stolen %>%
+pg_yearly_data <- total_pg_county_data %>%
   group_by(year) %>%
   summarize(
-    stolen_autos = sum(crime_type == "AUTO, STOLEN")) %>% 
-  add_row(year = 2023, stolen_autos = 6229) %>% 
-  mutate(perc_change = (6229-3105)/3105)*100
+    stolen_autos = sum(crime_type == "AUTO, STOLEN")) 
+    #add_row(year = 2023, stolen_autos = 6229)
+
+pg_yearly_data %>% 
+  summarize(stolen_autos = (sum(stolen_autos)))
 
 ```
 
@@ -79,10 +95,9 @@ Monthly totals for PG county 2019-2022
 pg_monthly <- pg_stolen %>% 
   group_by(month, year) %>% 
   summarize(
-    stolen_recovered = sum(crime_type == "AUTO, STOLEN & RECOVERED"),
-    stolen_autos = sum(crime_type == "AUTO, STOLEN"),
-    month_total = stolen_recovered + stolen_autos) %>% 
-    mutate(month = month(month, label = TRUE))
+    stolen_autos = sum(crime_type == "AUTO, STOLEN")) %>%     
+    mutate(month = month(month, label = TRUE)) %>% 
+  pivot_wider(names_from = year, values_from = stolen_autos)
 
 ```
 
