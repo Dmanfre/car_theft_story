@@ -59,7 +59,7 @@ total_pg_county_data <- total_pg_county_data %>%
 filtering for AUTO, STOLEN.
 ```{r}
 pg_stolen <- total_pg_county_data %>% 
-  filter(crime_type == "AUTO, STOLEN")
+  filter(crime_type == "AUTO, STOLEN" |crime_type == "AUTO, STOLEN & RECOVERED")
 ```
 
 Exploratory data section
@@ -68,14 +68,18 @@ Exploratory data section
 
 Goal of below code block is to show year, stolen_auto count, stolen_recovered_count and a grand_total
 ```{r}
-pg_yearly_data <- total_pg_county_data %>%
+pg_yearly_data <- pg_stolen %>%
   group_by(year) %>%
   summarize(
-    stolen_autos = sum(crime_type == "AUTO, STOLEN")) 
+    stolen_recovered = sum(crime_type == "AUTO, STOLEN & RECOVERED"),
+    stolen_autos = sum(crime_type == "AUTO, STOLEN")) %>% 
+    mutate(grand_total = stolen_autos +stolen_recovered)
     #add_row(year = 2023, stolen_autos = 6229)
 
 pg_yearly_data %>% 
   summarize(stolen_autos = (sum(stolen_autos)))
+
+write_csv(pg_yearly_data, "data/yearly_total.csv")
 
 ```
 
@@ -84,7 +88,7 @@ quick visual
 ggplot() + 
   geom_bar(
     data=pg_yearly_data, 
-    aes(x=year, weight=`stolen_autos`))+
+    aes(x=year, weight=`grand_total`))+
   labs(title = "Car thefts in PG county 2019-2022",
        caption =  "Source: PG Open Data | Graph by Dylan Manfre")
 ```
@@ -95,9 +99,14 @@ Monthly totals for PG county 2019-2022
 pg_monthly <- pg_stolen %>% 
   group_by(month, year) %>% 
   summarize(
+    stolen_recovered = sum(crime_type == "AUTO, STOLEN & RECOVERED"),
     stolen_autos = sum(crime_type == "AUTO, STOLEN")) %>%     
-    mutate(month = month(month, label = TRUE)) %>% 
-  pivot_wider(names_from = year, values_from = stolen_autos)
+    mutate(month = month(month, label = TRUE)) %>%
+    mutate(grand_total = stolen_autos + stolen_recovered) %>% 
+    #pivot_wider(names_from = year, values_from = grand_total)
+
+
+    
 
 ```
 

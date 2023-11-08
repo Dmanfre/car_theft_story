@@ -18,6 +18,7 @@ library(tidygeocoder)
 library(curl)
 library(ggplot2)
 library(ggrepel)
+
 ```
 
 loading data
